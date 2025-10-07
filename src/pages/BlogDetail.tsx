@@ -88,7 +88,7 @@ export default function BlogDetail() {
                 </div>
                 {canEdit && (
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/blog/edit/${post.id}`)}>
                       <Edit className="w-4 h-4 mr-2" />
                       Edit
                     </Button>

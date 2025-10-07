@@ -14,6 +14,10 @@ import TicketDetail from "./pages/TicketDetail";
 import Profile from "./pages/Profile";
 import Blog from "./pages/Blog";
 import BlogDetail from "./pages/BlogDetail";
+import BlogEditor from "./pages/BlogEditor";
+import UserManagement from "./pages/UserManagement";
+import Analytics from "./pages/Analytics";
+import ReviewManagement from "./pages/ReviewManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +41,11 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog/:id" element={<BlogDetail />} />
+                <Route path="/blog/create" element={<BlogEditor />} />
+                <Route path="/blog/edit/:id" element={<BlogEditor />} />
+                <Route path="/users" element={<UserManagement />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/reviews" element={<ReviewManagement />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

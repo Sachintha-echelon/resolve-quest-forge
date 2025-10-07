@@ -44,7 +44,7 @@ export default function Blog() {
           </div>
           {user.role === 'admin' && (
             <Button asChild>
-              <Link to="/blog/new">
+              <Link to="/blog/create">
                 <Plus className="w-4 h-4 mr-2" />
                 New Article
               </Link>

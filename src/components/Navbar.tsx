@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { TicketIcon, LogOut, User, BookOpen, LayoutDashboard } from 'lucide-react';
+import { TicketIcon, LogOut, User, BookOpen, LayoutDashboard, Users, BarChart3, Star } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +63,40 @@ export function Navbar() {
                   Blog
                 </Link>
               </Button>
+              {user.role === 'admin' && (
+                <>
+                  <Button
+                    variant={isActive('/users') ? 'default' : 'ghost'}
+                    asChild
+                    size="sm"
+                  >
+                    <Link to="/users">
+                      <Users className="w-4 h-4 mr-2" />
+                      Users
+                    </Link>
+                  </Button>
+                  <Button
+                    variant={isActive('/analytics') ? 'default' : 'ghost'}
+                    asChild
+                    size="sm"
+                  >
+                    <Link to="/analytics">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Analytics
+                    </Link>
+                  </Button>
+                  <Button
+                    variant={isActive('/reviews') ? 'default' : 'ghost'}
+                    asChild
+                    size="sm"
+                  >
+                    <Link to="/reviews">
+                      <Star className="w-4 h-4 mr-2" />
+                      Reviews
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
