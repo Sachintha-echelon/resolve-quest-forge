@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/pages/Auth.tsx
+
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,7 +17,7 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [signupData, setSignupData] = useState({ name: '', email: '', password: '' });
+  const [signupData, setSignupData] = useState({ fullname: '', email: '', password: '' });
 
   if (user) {
     return <Navigate to="/dashboard" replace />;
@@ -26,8 +29,8 @@ export default function Auth() {
     try {
       await login(loginData.email, loginData.password);
       toast.success('Welcome back!');
-    } catch (error) {
-      toast.error('Invalid credentials. Try admin@ticketsystem.com');
+    } catch (error: any) {
+      toast.error(error.message || 'Invalid credentials');
     } finally {
       setIsLoading(false);
     }
@@ -37,10 +40,10 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signup(signupData.name, signupData.email, signupData.password);
+      await signup(signupData.fullname, signupData.email, signupData.password);
       toast.success('Account created successfully!');
-    } catch (error) {
-      toast.error('Failed to create account');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
     }
@@ -100,9 +103,9 @@ export default function Auth() {
                 <div className="mt-4 p-4 bg-muted rounded-lg">
                   <p className="text-sm font-medium mb-2">Demo Accounts:</p>
                   <div className="space-y-1 text-xs text-muted-foreground">
-                    <p>Admin: admin@ticketsystem.com</p>
-                    <p>Agent: sarah@ticketsystem.com</p>
-                    <p>Customer: john@example.com</p>
+                    <p>Admin: admin@ticketsystem.com | pass: admin123</p>
+                    <p>Agent: sarah@ticketsystem.com | pass: agent123</p>
+                    <p>Customer: john@example.com | pass: customer123</p>
                   </div>
                 </div>
               </CardContent>
@@ -123,8 +126,8 @@ export default function Auth() {
                       id="signup-name"
                       type="text"
                       placeholder="John Doe"
-                      value={signupData.name}
-                      onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
+                      value={signupData.fullname}
+                      onChange={(e) => setSignupData({ ...signupData, fullname: e.target.value })}
                       required
                     />
                   </div>
