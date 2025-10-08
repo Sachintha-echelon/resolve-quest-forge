@@ -1,9 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTickets } from '@/contexts/TicketContext';
 import { Navbar } from '@/components/Navbar';
-import { mockUsers } from '@/lib/mockData';
 import {
   TrendingUp,
   Clock,
@@ -12,24 +11,153 @@ import {
   Users,
   Star,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+interface Ticket {
+  id: string;
+  title: string;
+  description: string;
+  status: 'open' | 'inprogress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  userEmail: string;
+  userName: string;
+  userId: string;
+  assignedAgentId?: string;
+  assignedAgentName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Review {
+  id: string;
+  username: string;
+  description: string;
+  ratingNumber: number;
+  ticketTitle: string;
+  agentReply?: string;
+  agentId?: string;
+  repliedAt?: string;
+  createdAt: string;
+}
+
+interface User {
+  id: string;
+  fullname: string;
+  email: string;
+  bio?: string;
+  role: 'admin' | 'agent' | 'customer';
+  avatarUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function Analytics() {
   const { user } = useAuth();
-  const { tickets, reviews } = useTickets();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!user || (user.role !== 'admin' && user.role !== 'support_agent')) {
+  useEffect(() => {
+    if (user) {
+      fetchAllData();
+    }
+  }, [user]);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem('token');
+
+      // Fetch all required data in parallel
+      const [ticketsRes, reviewsRes, usersRes] = await Promise.all([
+        fetch('http://localhost:3000/api/tickets', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:3000/api/reviews', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:3000/api/users/profiles', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      // Check responses
+      if (!ticketsRes.ok || !reviewsRes.ok || !usersRes.ok) {
+        const [ticketsErr, reviewsErr, usersErr] = await Promise.all([
+          ticketsRes.json().catch(() => ({})),
+          reviewsRes.json().catch(() => ({})),
+          usersRes.json().catch(() => ({}))
+        ]);
+
+        const errorMsg = ticketsRes.status !== 200
+          ? ticketsErr.message
+          : reviewsRes.status !== 200
+            ? reviewsErr.message
+            : usersErr.message;
+
+        throw new Error(errorMsg || 'Failed to fetch data');
+      }
+
+      const [ticketsData, reviewsData, usersData] = await Promise.all([
+        ticketsRes.json(),
+        reviewsRes.json(),
+        usersRes.json()
+      ]);
+
+      setTickets(ticketsData.tickets || []);
+      setReviews(reviewsData.reviews || []);
+      setUsers(usersData.users || []);
+    } catch (err) {
+      console.error('Error fetching analytics data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load analytics data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!user || (user.role !== 'admin' && user.role !== 'agent')) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center p-6 max-w-md">
+          <div className="bg-destructive/10 p-4 rounded-full inline-block mb-4">
+            <div className="text-destructive text-2xl">⚠️</div>
+          </div>
+          <h3 className="text-xl font-bold mb-2">Error Loading Analytics</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={fetchAllData}>Try Again</Button>
+        </div>
+      </div>
+    );
   }
 
   const totalTickets = tickets.length;
   const openTickets = tickets.filter((t) => t.status === 'open').length;
-  const inProgressTickets = tickets.filter((t) => t.status === 'in-progress').length;
+  const inProgressTickets = tickets.filter((t) => t.status === 'inprogress').length;
   const resolvedTickets = tickets.filter((t) => t.status === 'resolved').length;
   const closedTickets = tickets.filter((t) => t.status === 'closed').length;
 
   const avgRating =
     reviews.length > 0
-      ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+      ? (reviews.reduce((acc, r) => acc + r.ratingNumber, 0) / reviews.length).toFixed(1)
       : 'N/A';
 
   const ticketsByPriority = {
@@ -39,8 +167,8 @@ export default function Analytics() {
     low: tickets.filter((t) => t.priority === 'low').length,
   };
 
-  const totalCustomers = mockUsers.filter((u) => u.role === 'customer').length;
-  const totalAgents = mockUsers.filter((u) => u.role === 'support_agent').length;
+  const totalCustomers = users.filter((u) => u.role === 'customer').length;
+  const totalAgents = users.filter((u) => u.role === 'agent').length;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -122,7 +250,7 @@ export default function Analytics() {
                     <div className="w-48 bg-muted rounded-full h-2">
                       <div
                         className="bg-primary h-2 rounded-full"
-                        style={{ width: `${(openTickets / totalTickets) * 100}%` }}
+                        style={{ width: `${totalTickets ? (openTickets / totalTickets) * 100 : 0}%` }}
                       />
                     </div>
                     <span className="text-sm font-medium w-8">{openTickets}</span>
@@ -134,7 +262,7 @@ export default function Analytics() {
                     <div className="w-48 bg-muted rounded-full h-2">
                       <div
                         className="bg-warning h-2 rounded-full"
-                        style={{ width: `${(inProgressTickets / totalTickets) * 100}%` }}
+                        style={{ width: `${totalTickets ? (inProgressTickets / totalTickets) * 100 : 0}%` }}
                       />
                     </div>
                     <span className="text-sm font-medium w-8">{inProgressTickets}</span>
@@ -146,7 +274,7 @@ export default function Analytics() {
                     <div className="w-48 bg-muted rounded-full h-2">
                       <div
                         className="bg-success h-2 rounded-full"
-                        style={{ width: `${(resolvedTickets / totalTickets) * 100}%` }}
+                        style={{ width: `${totalTickets ? (resolvedTickets / totalTickets) * 100 : 0}%` }}
                       />
                     </div>
                     <span className="text-sm font-medium w-8">{resolvedTickets}</span>
@@ -158,7 +286,7 @@ export default function Analytics() {
                     <div className="w-48 bg-muted rounded-full h-2">
                       <div
                         className="bg-muted-foreground h-2 rounded-full"
-                        style={{ width: `${(closedTickets / totalTickets) * 100}%` }}
+                        style={{ width: `${totalTickets ? (closedTickets / totalTickets) * 100 : 0}%` }}
                       />
                     </div>
                     <span className="text-sm font-medium w-8">{closedTickets}</span>
