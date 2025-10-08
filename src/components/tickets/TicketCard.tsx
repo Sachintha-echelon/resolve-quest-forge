@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Ticket } from '@/types';
 import { Clock, User } from 'lucide-react';
 import { format } from 'date-fns';
-import { mockUsers } from '@/lib/mockData';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -12,7 +11,7 @@ interface TicketCardProps {
 
 const statusColors = {
   open: 'bg-primary text-primary-foreground',
-  'in-progress': 'bg-warning text-warning-foreground',
+  'inprogress': 'bg-warning text-warning-foreground',
   resolved: 'bg-success text-success-foreground',
   closed: 'bg-muted text-muted-foreground',
 };
@@ -25,8 +24,10 @@ const priorityColors = {
 };
 
 export function TicketCard({ ticket }: TicketCardProps) {
-  const customer = mockUsers.find(u => u.id === ticket.customerId);
-  const agent = ticket.assignedAgentId ? mockUsers.find(u => u.id === ticket.assignedAgentId) : null;
+  // Format dates from backend string format
+  const formattedDate = ticket.createdAt
+    ? format(new Date(ticket.createdAt), 'MMM d, yyyy')
+    : 'N/A';
 
   return (
     <Link to={`/tickets/${ticket.id}`}>
@@ -41,7 +42,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground line-clamp-2">{ticket.description}</p>
-          
+
           <div className="flex flex-wrap gap-2">
             <Badge className={statusColors[ticket.status]} variant="outline">
               {ticket.status}
@@ -51,17 +52,17 @@ export function TicketCard({ ticket }: TicketCardProps) {
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
             <div className="flex items-center gap-1">
               <User className="w-3 h-3" />
-              <span>{customer?.name}</span>
+              <span>{ticket.userName}</span>
             </div>
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              <span>{format(ticket.createdAt, 'MMM d, yyyy')}</span>
+              <span>{formattedDate}</span>
             </div>
           </div>
 
-          {agent && (
+          {ticket.assignedAgentName && (
             <div className="text-xs text-muted-foreground">
-              Assigned to: <span className="font-medium text-foreground">{agent.name}</span>
+              Assigned to: <span className="font-medium text-foreground">{ticket.assignedAgentName}</span>
             </div>
           )}
         </CardContent>
