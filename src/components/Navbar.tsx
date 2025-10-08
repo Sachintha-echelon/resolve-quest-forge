@@ -104,15 +104,15 @@ export function Navbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar>
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={user.avatarUrl} alt={user.fullname} />
+                  <AvatarFallback>{user.fullname.charAt(0)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{user.name}</p>
+                  <p className="text-sm font-medium">{user.fullname}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                   <p className="text-xs text-muted-foreground capitalize">{user.role.replace('_', ' ')}</p>
                 </div>
