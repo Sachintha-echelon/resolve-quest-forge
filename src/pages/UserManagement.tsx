@@ -1,12 +1,41 @@
 import { Navigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/Navbar';
-import { mockUsers } from '@/lib/mockData';
 import { UserRole } from '@/types';
-import { Users, Shield, Headphones, User } from 'lucide-react';
+import { Users, Shield, Headphones, User, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const roleIcons = {
   admin: Shield,
@@ -21,17 +50,46 @@ const roleColors = {
 };
 
 export default function UserManagement() {
-  const { user } = useAuth();
+  const { user, users, updateUser, deleteUser } = useAuth();
+  const [editingUser, setEditingUser] = useState<typeof users[0] | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', bio: '', role: '' as UserRole });
 
   if (!user || user.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const usersByRole = mockUsers.reduce((acc, u) => {
+  const usersByRole = users.reduce((acc, u) => {
     if (!acc[u.role]) acc[u.role] = [];
     acc[u.role].push(u);
     return acc;
-  }, {} as Record<UserRole, typeof mockUsers>);
+  }, {} as Record<UserRole, typeof users>);
+
+  const handleEditClick = (u: typeof users[0]) => {
+    setEditingUser(u);
+    setEditForm({ 
+      name: u.name, 
+      email: u.email, 
+      bio: u.bio || '', 
+      role: u.role 
+    });
+  };
+
+  const handleEditSave = () => {
+    if (editingUser) {
+      updateUser(editingUser.id, editForm);
+      toast.success('User updated successfully');
+      setEditingUser(null);
+    }
+  };
+
+  const handleDelete = () => {
+    if (deletingUserId) {
+      deleteUser(deletingUserId);
+      toast.success('User deleted successfully');
+      setDeletingUserId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -50,7 +108,7 @@ export default function UserManagement() {
                   <Users className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{mockUsers.length}</p>
+                  <p className="text-2xl font-bold">{users.length}</p>
                   <p className="text-sm text-muted-foreground">Total Users</p>
                 </div>
               </div>
@@ -96,7 +154,7 @@ export default function UserManagement() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockUsers.map((u) => {
+              {users.map((u) => {
                 const Icon = roleIcons[u.role];
                 return (
                   <div
@@ -116,10 +174,27 @@ export default function UserManagement() {
                         )}
                       </div>
                     </div>
-                    <Badge className={roleColors[u.role]}>
-                      <Icon className="w-3 h-3 mr-1" />
-                      {u.role.replace('_', ' ')}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className={roleColors[u.role]}>
+                        <Icon className="w-3 h-3 mr-1" />
+                        {u.role.replace('_', ' ')}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditClick(u)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeletingUserId(u.id)}
+                        disabled={u.id === user.id}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -127,6 +202,74 @@ export default function UserManagement() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user information and role</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="bio">Bio</Label>
+              <Input
+                id="bio"
+                value={editForm.bio}
+                onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="role">Role</Label>
+              <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v as UserRole })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="support_agent">Support Agent</SelectItem>
+                  <SelectItem value="customer">Customer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
+            <Button onClick={handleEditSave}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deletingUserId} onOpenChange={(open) => !open && setDeletingUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

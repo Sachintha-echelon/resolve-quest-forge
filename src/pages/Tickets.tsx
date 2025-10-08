@@ -2,11 +2,22 @@ import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTickets } from '@/contexts/TicketContext';
 import { Navbar } from '@/components/Navbar';
 import { TicketCard } from '@/components/tickets/TicketCard';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -18,10 +29,11 @@ import { TicketStatus, TicketPriority } from '@/types';
 
 export default function Tickets() {
   const { user } = useAuth();
-  const { tickets } = useTickets();
+  const { tickets, deleteTicket } = useTickets();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
+  const [deletingTicketId, setDeletingTicketId] = useState<string | null>(null);
 
   if (!user) {
     return <Navigate to="/auth" replace />;
@@ -40,6 +52,14 @@ export default function Tickets() {
     const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
     return matchesSearch && matchesStatus && matchesPriority;
   });
+
+  const handleDelete = () => {
+    if (deletingTicketId) {
+      deleteTicket(deletingTicketId);
+      toast.success('Ticket deleted successfully');
+      setDeletingTicketId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -102,7 +122,19 @@ export default function Tickets() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTickets.map((ticket) => (
-            <TicketCard key={ticket.id} ticket={ticket} />
+            <div key={ticket.id} className="relative group">
+              <TicketCard ticket={ticket} />
+              {user.role === 'customer' && ticket.customerId === user.id && (
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => setDeletingTicketId(ticket.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           ))}
         </div>
 
@@ -112,6 +144,21 @@ export default function Tickets() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deletingTicketId} onOpenChange={(open) => !open && setDeletingTicketId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the ticket and all its messages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

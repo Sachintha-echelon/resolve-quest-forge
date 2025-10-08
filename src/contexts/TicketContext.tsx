@@ -8,8 +8,12 @@ interface TicketContextType {
   reviews: Review[];
   createTicket: (ticket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateTicket: (id: string, updates: Partial<Ticket>) => void;
+  deleteTicket: (id: string) => void;
   addMessage: (message: Omit<Message, 'id' | 'createdAt'>) => void;
   addReview: (review: Omit<Review, 'id' | 'createdAt'>) => void;
+  updateReview: (id: string, updates: Partial<Review>) => void;
+  deleteReview: (id: string) => void;
+  addReviewReply: (reviewId: string, reply: string, agentId: string) => void;
   getTicketById: (id: string) => Ticket | undefined;
   getMessagesByTicket: (ticketId: string) => Message[];
   getReviewByTicket: (ticketId: string) => Review | undefined;
@@ -40,6 +44,12 @@ export function TicketProvider({ children }: { children: ReactNode }) {
     ));
   };
 
+  const deleteTicket = (id: string) => {
+    setTickets(tickets.filter(ticket => ticket.id !== id));
+    setMessages(messages.filter(message => message.ticketId !== id));
+    setReviews(reviews.filter(review => review.ticketId !== id));
+  };
+
   const addMessage = (message: Omit<Message, 'id' | 'createdAt'>) => {
     const newMessage: Message = {
       ...message,
@@ -58,6 +68,26 @@ export function TicketProvider({ children }: { children: ReactNode }) {
     setReviews([...reviews, newReview]);
   };
 
+  const updateReview = (id: string, updates: Partial<Review>) => {
+    setReviews(reviews.map(review => 
+      review.id === id 
+        ? { ...review, ...updates }
+        : review
+    ));
+  };
+
+  const deleteReview = (id: string) => {
+    setReviews(reviews.filter(review => review.id !== id));
+  };
+
+  const addReviewReply = (reviewId: string, reply: string, agentId: string) => {
+    setReviews(reviews.map(review => 
+      review.id === reviewId 
+        ? { ...review, agentReply: reply, agentId, repliedAt: new Date() }
+        : review
+    ));
+  };
+
   const getTicketById = (id: string) => tickets.find(t => t.id === id);
   const getMessagesByTicket = (ticketId: string) => messages.filter(m => m.ticketId === ticketId);
   const getReviewByTicket = (ticketId: string) => reviews.find(r => r.ticketId === ticketId);
@@ -69,8 +99,12 @@ export function TicketProvider({ children }: { children: ReactNode }) {
       reviews,
       createTicket,
       updateTicket,
+      deleteTicket,
       addMessage,
       addReview,
+      updateReview,
+      deleteReview,
+      addReviewReply,
       getTicketById,
       getMessagesByTicket,
       getReviewByTicket,

@@ -13,10 +13,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTickets } from '@/contexts/TicketContext';
 import { Navbar } from '@/components/Navbar';
 import { ChatWidget } from '@/components/tickets/ChatWidget';
-import { ReviewForm } from '@/components/tickets/ReviewForm';
+import { ReviewFormCustomer } from '@/components/tickets/ReviewFormCustomer';
 import { ArrowLeft, Calendar, User, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import { mockUsers } from '@/lib/mockData';
 import { TicketStatus } from '@/types';
 import { toast } from 'sonner';
 
@@ -36,7 +35,7 @@ const priorityColors = {
 
 export default function TicketDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, users } = useAuth();
   const { getTicketById, updateTicket } = useTickets();
   const navigate = useNavigate();
 
@@ -50,8 +49,8 @@ export default function TicketDetail() {
     return <Navigate to="/tickets" replace />;
   }
 
-  const customer = mockUsers.find(u => u.id === ticket.customerId);
-  const agent = ticket.assignedAgentId ? mockUsers.find(u => u.id === ticket.assignedAgentId) : null;
+  const customer = users.find(u => u.id === ticket.customerId);
+  const agent = ticket.assignedAgentId ? users.find(u => u.id === ticket.assignedAgentId) : null;
 
   const canUpdateStatus = user.role === 'admin' || user.role === 'support_agent';
   const canSeeReview = ticket.status === 'resolved' || ticket.status === 'closed';
@@ -134,7 +133,7 @@ export default function TicketDetail() {
 
           <div className="space-y-6">
             {canSeeReview && user.role === 'customer' && (
-              <ReviewForm ticketId={ticket.id} />
+              <ReviewFormCustomer ticketId={ticket.id} />
             )}
 
             <Card className="shadow-card">

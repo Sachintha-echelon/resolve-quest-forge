@@ -1,21 +1,35 @@
 import { Navigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTickets } from '@/contexts/TicketContext';
 import { Navbar } from '@/components/Navbar';
-import { mockUsers } from '@/lib/mockData';
-import { Star, MessageSquare } from 'lucide-react';
+import { Star, MessageSquare, Reply } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function ReviewManagement() {
-  const { user } = useAuth();
-  const { reviews, getTicketById } = useTickets();
+  const { user, users } = useAuth();
+  const { reviews, getTicketById, addReviewReply } = useTickets();
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
 
   if (!user || (user.role !== 'admin' && user.role !== 'support_agent')) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  const handleReply = (reviewId: string) => {
+    if (replyText.trim()) {
+      addReviewReply(reviewId, replyText, user.id);
+      toast.success('Reply added successfully');
+      setReplyingTo(null);
+      setReplyText('');
+    }
+  };
 
   const avgRating =
     reviews.length > 0
@@ -100,7 +114,8 @@ export default function ReviewManagement() {
             ) : (
               <div className="space-y-6">
                 {reviews.map((review) => {
-                  const customer = mockUsers.find((u) => u.id === review.customerId);
+                  const customer = users.find((u) => u.id === review.customerId);
+                  const agent = review.agentId ? users.find((u) => u.id === review.agentId) : null;
                   const ticket = getTicketById(review.ticketId);
 
                   return (
@@ -135,9 +150,46 @@ export default function ReviewManagement() {
                       <p className="text-sm mb-3">{review.comment}</p>
 
                       {ticket && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs mb-3">
                           Ticket: {ticket.title}
                         </Badge>
+                      )}
+
+                      {review.agentReply && (
+                        <div className="mt-3 bg-muted/50 p-3 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Reply className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-semibold">{agent?.name || 'Agent'} replied:</span>
+                            <span className="text-xs text-muted-foreground">
+                              {review.repliedAt && format(review.repliedAt, 'PPp')}
+                            </span>
+                          </div>
+                          <p className="text-sm">{review.agentReply}</p>
+                        </div>
+                      )}
+
+                      {!review.agentReply && (
+                        <div className="mt-3">
+                          {replyingTo === review.id ? (
+                            <div className="space-y-2">
+                              <Textarea
+                                placeholder="Write your reply..."
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                rows={3}
+                              />
+                              <div className="flex gap-2">
+                                <Button onClick={() => handleReply(review.id)}>Send Reply</Button>
+                                <Button variant="outline" onClick={() => setReplyingTo(null)}>Cancel</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button variant="outline" size="sm" onClick={() => setReplyingTo(review.id)}>
+                              <Reply className="w-4 h-4 mr-2" />
+                              Reply
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
