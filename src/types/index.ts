@@ -40,6 +40,9 @@ export interface Review {
   customerId: string;
   rating: number;
   comment: string;
+  agentReply?: string;
+  agentId?: string;
+  repliedAt?: Date;
   createdAt: Date;
 }
 

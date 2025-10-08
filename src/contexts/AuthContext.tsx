@@ -4,10 +4,13 @@ import { mockUsers } from '@/lib/mockData';
 
 interface AuthContextType {
   user: User | null;
+  users: User[];
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => void;
+  updateUser: (id: string, updates: Partial<User>) => void;
+  deleteUser: (id: string) => void;
   isLoading: boolean;
 }
 
@@ -15,6 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>(mockUsers);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -26,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const foundUser = mockUsers.find(u => u.email === email);
+    const foundUser = users.find(u => u.email === email);
     if (!foundUser) {
       throw new Error('Invalid credentials');
     }
@@ -55,12 +59,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) {
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
+      setUsers(users.map(u => u.id === user.id ? updatedUser : u));
       localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 
+  const updateUser = (id: string, updates: Partial<User>) => {
+    setUsers(users.map(u => u.id === id ? { ...u, ...updates } : u));
+    if (user?.id === id) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
+  const deleteUser = (id: string) => {
+    setUsers(users.filter(u => u.id !== id));
+    if (user?.id === id) {
+      logout();
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, updateProfile, isLoading }}>
+    <AuthContext.Provider value={{ user, users, login, signup, logout, updateProfile, updateUser, deleteUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
