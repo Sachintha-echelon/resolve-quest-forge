@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +13,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTickets } from '@/contexts/TicketContext';
 import { Navbar } from '@/components/Navbar';
 import { TicketCard } from '@/components/tickets/TicketCard';
-import { Plus, Search, Filter, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Select,
@@ -25,27 +24,138 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TicketStatus, TicketPriority } from '@/types';
+import { TicketStatus, TicketPriority, Ticket } from '@/types';
+
+interface Review {
+  id: string;
+  ticketId: string;
+  username: string;
+  description: string;
+  ratingNumber: number;
+  ticketTitle: string;
+  agentReply?: string;
+  agentId?: string;
+  repliedAt?: string;
+  createdAt: string;
+}
 
 export default function Tickets() {
   const { user } = useAuth();
-  const { tickets, deleteTicket } = useTickets();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
   const [deletingTicketId, setDeletingTicketId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchTickets();
+      fetchReviews();
+    }
+  }, [user]);
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      let url = 'http://localhost:3000/api/tickets';
+      const params = new URLSearchParams();
+
+      // Add filters based on user role
+      if (user?.role === 'customer') {
+        params.append('userId', user.id);
+      } else if (user?.role === 'agent') {
+        params.append('assignedAgentId', user.id);
+      }
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch tickets');
+      }
+
+      const data = await response.json();
+      setTickets(data.tickets || []);
+    } catch (err) {
+      console.error('Error fetching tickets:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      toast.error('Failed to load tickets');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/reviews', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch reviews');
+      }
+
+      const data = await response.json();
+      setReviews(data.reviews || []);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingTicketId) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/tickets/${deletingTicketId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete ticket');
+      }
+
+      toast.success('Ticket deleted successfully');
+      setTickets(tickets.filter(ticket => ticket.id !== deletingTicketId));
+      setDeletingTicketId(null);
+    } catch (err) {
+      console.error('Error deleting ticket:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to delete ticket');
+    }
+  };
 
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
-  const userTickets = user.role === 'customer'
-    ? tickets.filter(t => t.customerId === user.id)
-    : user.role === 'support_agent'
-    ? tickets.filter(t => t.assignedAgentId === user.id)
-    : tickets;
-
-  const filteredTickets = userTickets.filter(ticket => {
+  // Filter tickets based on UI filters
+  const filteredTickets: Ticket[] = tickets.filter(ticket => {
     const matchesSearch = ticket.title.toLowerCase().includes(search.toLowerCase()) ||
       ticket.description.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
@@ -53,13 +163,40 @@ export default function Tickets() {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
-  const handleDelete = () => {
-    if (deletingTicketId) {
-      deleteTicket(deletingTicketId);
-      toast.success('Ticket deleted successfully');
-      setDeletingTicketId(null);
-    }
-  };
+  // Add review information to tickets
+  const ticketsWithReviews = filteredTickets.map(ticket => {
+    const review = reviews.find(r => r.ticketId === ticket.id);
+    return {
+      ...ticket,
+      review: review || null
+    };
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading tickets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center p-6 max-w-md">
+          <div className="bg-destructive/10 p-4 rounded-full inline-block mb-4">
+            <div className="text-destructive text-2xl">⚠️</div>
+          </div>
+          <h3 className="text-xl font-bold mb-2">Error Loading Tickets</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={fetchTickets}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -100,7 +237,7 @@ export default function Tickets() {
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="inprogress">In Progress</SelectItem>
               <SelectItem value="resolved">Resolved</SelectItem>
               <SelectItem value="closed">Closed</SelectItem>
             </SelectContent>
@@ -121,7 +258,7 @@ export default function Tickets() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTickets.map((ticket) => (
+          {ticketsWithReviews.map((ticket) => (
             <div key={ticket.id} className="relative group">
               <TicketCard ticket={ticket} />
               {user.role === 'customer' && ticket.customerId === user.id && (
@@ -134,6 +271,41 @@ export default function Tickets() {
                   <Trash2 className="w-4 h-4" />
                 </Button>
               )}
+
+              {/* Review Section for Resolved/Closed Tickets */}
+              {user.role === 'customer' &&
+                (ticket.status === 'resolved' || ticket.status === 'closed') &&
+                !ticket.review && (
+                <div className="mt-2 p-3 bg-muted rounded-lg">
+                  <Link to={`/tickets/${ticket.id}`}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Star className="w-4 h-4 mr-2" />
+                      Rate & Review
+                    </Button>
+                  </Link>
+                </div>
+              )}
+
+              {/* Show existing review if available */}
+              {ticket.review && (
+                <div className="mt-2 p-3 bg-muted rounded-lg">
+                  <div className="flex items-center gap-1 mb-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-4 h-4 ${
+                          i < ticket.review!.ratingNumber
+                            ? 'fill-primary text-primary'
+                            : 'text-muted-foreground'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {ticket.review.description}
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -141,6 +313,23 @@ export default function Tickets() {
         {filteredTickets.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No tickets match your filters</p>
+            {search || statusFilter !== 'all' || priorityFilter !== 'all' ? (
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => {
+                  setSearch('');
+                  setStatusFilter('all');
+                  setPriorityFilter('all');
+                }}
+              >
+                Clear Filters
+              </Button>
+            ) : user.role === 'customer' ? (
+              <Button asChild className="mt-4">
+                <Link to="/tickets/new">Create Your First Ticket</Link>
+              </Button>
+            ) : null}
           </div>
         )}
       </div>

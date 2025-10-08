@@ -1,27 +1,33 @@
-export type UserRole = 'admin' | 'support_agent' | 'customer';
+
+export type UserRole = 'admin' | 'agent' | 'customer';
 
 export interface User {
   id: string;
-  name: string;
+  fullname: string;
   email: string;
-  role: UserRole;
   bio?: string;
-  avatar?: string;
-  createdAt: Date;
+  password: string
+  role: UserRole;
+  avatarUrl?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
+export type TicketStatus = 'open' | 'inprogress' | 'resolved' | 'closed';
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Ticket {
   id: string;
   title: string;
+  userName: string;
   description: string;
   status: TicketStatus;
   priority: TicketPriority;
   customerId: string;
   assignedAgentId?: string;
+  assignedAgentName: string;
   createdAt: Date;
+  userId?: string
   updatedAt: Date;
   resolvedAt?: Date;
 }
@@ -38,8 +44,8 @@ export interface Review {
   id: string;
   ticketId: string;
   customerId: string;
-  rating: number;
-  comment: string;
+  ratingNumber: number;
+  description: string;
   agentReply?: string;
   agentId?: string;
   repliedAt?: Date;

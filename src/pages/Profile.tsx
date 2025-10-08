@@ -1,4 +1,5 @@
-import { useState } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,11 +16,23 @@ export default function Profile() {
   const { user, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    bio: user?.bio || '',
-    avatar: user?.avatar || '',
+    fullname: '',
+    email: '',
+    bio: '',
+    avatarUrl: '',
   });
+
+  // Initialize form data when user loads
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        fullname: user.fullname,
+        email: user.email,
+        bio: user.bio || '',
+        avatarUrl: user.avatarUrl || '',
+      });
+    }
+  }, [user]);
 
   if (!user) {
     return <Navigate to="/auth" replace />;
@@ -27,17 +40,25 @@ export default function Profile() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile(formData);
+
+    // Only send fields that have changed
+    const updates: any = {};
+    if (formData.fullname !== user.fullname) updates.fullname = formData.fullname;
+    if (formData.email !== user.email) updates.email = formData.email;
+    if (formData.bio !== (user.bio || '')) updates.bio = formData.bio;
+    if (formData.avatarUrl !== (user.avatarUrl || '')) updates.avatarUrl = formData.avatarUrl;
+
+    updateProfile(updates);
     toast.success('Profile updated successfully!');
     setIsEditing(false);
   };
 
   const handleCancel = () => {
     setFormData({
-      name: user.name,
+      fullname: user.fullname,
       email: user.email,
       bio: user.bio || '',
-      avatar: user.avatar || '',
+      avatarUrl: user.avatarUrl || '',
     });
     setIsEditing(false);
   };
@@ -65,19 +86,19 @@ export default function Profile() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex items-center gap-6">
                   <Avatar className="w-24 h-24">
-                    <AvatarImage src={formData.avatar} />
+                    <AvatarImage src={formData.avatarUrl} />
                     <AvatarFallback className="text-2xl">
-                      {formData.name.charAt(0)}
+                      {formData.fullname.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
                     <div className="flex-1">
-                      <Label htmlFor="avatar">Avatar URL</Label>
+                      <Label htmlFor="avatarUrl">Avatar URL</Label>
                       <Input
-                        id="avatar"
-                        value={formData.avatar}
-                        onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-                        placeholder="https://..."
+                        id="avatarUrl"
+                        value={formData.avatarUrl}
+                        onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
+                        placeholder="https://example.com/avatar.jpg"
                       />
                     </div>
                   )}
@@ -85,14 +106,14 @@ export default function Profile() {
 
                 <div className="grid gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="flex items-center gap-2">
+                    <Label htmlFor="fullname" className="flex items-center gap-2">
                       <UserIcon className="w-4 h-4" />
                       Full Name
                     </Label>
                     <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      id="fullname"
+                      value={formData.fullname}
+                      onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
                       disabled={!isEditing}
                       required
                     />

@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTickets } from '@/contexts/TicketContext';
 import { Navbar } from '@/components/Navbar';
 import { toast } from 'sonner';
 import { TicketPriority } from '@/types';
@@ -21,35 +20,58 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function NewTicket() {
   const { user } = useAuth();
-  const { createTicket } = useTickets();
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TicketPriority>('medium');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!user || user.role !== 'customer') {
     return <Navigate to="/tickets" replace />;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim() || !description.trim()) {
       toast.error('Please fill in all fields');
       return;
     }
 
-    createTicket({
-      title,
-      description,
-      status: 'open',
-      priority,
-      customerId: user.id,
-    });
+    setIsSubmitting(true);
 
-    toast.success('Ticket created successfully!');
-    navigate('/tickets');
+    try {
+      const response = await fetch('http://localhost:3000/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          priority,
+          userEmail: user.email,
+          userName: user.fullname,
+          userId: user.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create ticket');
+      }
+
+      toast.success('Ticket created successfully!');
+      navigate('/tickets');
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create ticket');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -78,6 +100,7 @@ export default function NewTicket() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -90,12 +113,17 @@ export default function NewTicket() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={6}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority</Label>
-                <Select value={priority} onValueChange={(v) => setPriority(v as TicketPriority)}>
+                <Select
+                  value={priority}
+                  onValueChange={(v) => setPriority(v as TicketPriority)}
+                  disabled={isSubmitting}
+                >
                   <SelectTrigger id="priority">
                     <SelectValue />
                   </SelectTrigger>
@@ -109,10 +137,19 @@ export default function NewTicket() {
               </div>
 
               <div className="flex gap-4">
-                <Button type="submit" className="flex-1">
-                  Create Ticket
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Creating...' : 'Create Ticket'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </Button>
               </div>
