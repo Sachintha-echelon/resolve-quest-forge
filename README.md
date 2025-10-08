@@ -1,73 +1,147 @@
-# Welcome to your Lovable project
+# Frontend README
 
-## Project info
+## Support Ticket System - Frontend
 
-**URL**: https://lovable.dev/projects/02759abd-1b6c-4a2c-8eab-af652d672a86
+A modern, responsive React application for managing support tickets with real-time chat, reviews, and analytics.
 
-## How can I edit this code?
+### 🚀 Features
 
-There are several ways of editing your application.
+- **User Authentication**: Secure login/registration with role-based access
+- **Ticket Management**: Create, view, update, and delete support tickets
+- **Real-time Chat**: Live messaging system for ticket communication
+- **Reviews & Ratings**: Customer feedback system with 5-star ratings
+- **Analytics Dashboard**: Performance metrics and ticket statistics
+- **Knowledge Base**: Article management for customer support
+- **Responsive Design**: Works on all device sizes
 
-**Use Lovable**
+### 🛠️ Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/02759abd-1b6c-4a2c-8eab-af652d672a86) and start prompting.
+- **Framework**: React 18 with TypeScript
+- **Styling**: Tailwind CSS with custom UI components
+- **State Management**: React Context API
+- **Routing**: React Router v6
+- **HTTP Client**: Fetch API
+- **UI Components**: Custom-built using Radix UI primitives
+- **Icons**: Lucide React
+- **Date Handling**: date-fns
+- **Notifications**: Sonner toast library
 
-Changes made via Lovable will be committed automatically to this repo.
+### 📁 Project Structure
 
-**Use your preferred IDE**
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # Base UI components (buttons, cards, etc.)
+│   └── tickets/        # Ticket-specific components
+├── contexts/           # React Context providers
+├── pages/              # Route components
+├── types/              # TypeScript type definitions
+├── lib/                # Utility functions and mock data
+└── routes/             # API route definitions
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 🔧 Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd support-ticket-frontend
+```
 
-Follow these steps:
+2. Install dependencies:
+```bash
+npm install
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. Create environment file:
+```bash
+cp .env.example .env.local
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. Update environment variables:
+```env
+VITE_API_BASE_URL=http://localhost:3000/api
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+5. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### 🚦 Available Scripts
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- `npm run dev` - Start development server
+- `npm run build` - Create production build
+- `npm run preview` - Preview production build locally
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript type checking
 
-**Use GitHub Codespaces**
+### 🔐 Authentication Flow
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. User logs in via `/auth` route
+2. JWT token is stored in localStorage
+3. Token is attached to all API requests
+4. User role determines available features
 
-## What technologies are used for this project?
+### 📊 Available Roles
 
-This project is built with:
+- **Customer**: Create tickets, chat with agents, rate support
+- **Agent**: View assigned tickets, update status, reply to reviews
+- **Admin**: Full access to all features, user management
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 📈 Key Components
 
-## How can I deploy this project?
+- **TicketCard**: Displays ticket summary with status/priority indicators
+- **ChatWidget**: Real-time messaging interface
+- **ReviewForm**: Customer rating and feedback form
+- **TicketDetail**: Full ticket view with all interactions
+- **Dashboard**: Analytics and quick ticket overview
 
-Simply open [Lovable](https://lovable.dev/projects/02759abd-1b6c-4a2c-8eab-af652d672a86) and click on Share -> Publish.
+### 📝 API Integration
 
-## Can I connect a custom domain to my Lovable project?
+The frontend communicates with the backend through:
+- `/api/tickets` - Ticket management
+- `/api/chats` - Real-time messaging
+- `/api/reviews` - Customer feedback
+- `/api/users` - User management
+- `/api/blogs` - Knowledge base articles
 
-Yes, you can!
+### 🧪 Testing
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- Unit tests with React Testing Library
+- Integration tests for API interactions
+- Component testing with Storybook (planned)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### 🚀 Deployment
+
+1. Build for production:
+```bash
+npm run build
+```
+
+2. Serve the `dist/` folder using:
+- Static hosting (Netlify, Vercel, GitHub Pages)
+- Web server (Apache, Nginx)
+- Node.js server
+
+### 🔒 Security Considerations
+
+- JWT tokens stored in localStorage (consider HttpOnly cookies in production)
+- Input validation on client-side
+- Role-based access control
+- Secure API communication over HTTPS
+
+### 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### 📄 License
+
+MIT License - see LICENSE file for details.
+
+---
+
